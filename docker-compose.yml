@@ -1,0 +1,32 @@
+services:
+  redis-broker:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+
+  producer:
+    build: ./producer
+    depends_on:
+      - redis-broker
+    environment:
+      - REDIS_HOST=redis-broker
+      - PYTHONUNBUFFERED=1
+
+  worker:
+    build: ./worker
+    depends_on:
+      - redis-broker
+    environment:
+      - REDIS_HOST=redis-broker
+      - PYTHONUNBUFFERED=1
+
+  api-hub:
+    build: ./api-hub
+    ports: ["3001:3001"]
+    depends_on: [redis-broker]
+    environment:
+      - REDIS_HOST=redis-broker
+
+  frontend:
+    build: ./frontend
+    ports: ["5173:5173"]
