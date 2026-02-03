@@ -1,27 +1,33 @@
 import redis
 import time
-import random
 import os
-import json
+import requests
 
 redis_host = os.getenv('REDIS_HOST', 'localhost')
 client = redis.Redis(host=redis_host, port=6379, decode_responses=True)
 
-drivers = [f"driver_{i}" for i in range(100)]
+def get_route(start, end):
+    """Fetch a road-snapped route from OSRM"""
+    try:
+        url = f"http://router.project-osrm.org/route/v1/driving/{start[0]},{start[1]};{end[0]},{end[1]}?overview=full&geometries=geojson"
+        r = requests.get(url)
+        return r.json()['routes'][0]['geometry']['coordinates']
+    except Exception as e:
+        print(f"Error fetching route: {e}")
+        return None
 
-driver_coords = {
-    d: [random.uniform(-74.0100, -73.9300), random.uniform(40.7000, 40.8000)]
-    for d in drivers
-}
+driver_id = "taxi_pro_1"
+current_pos = [-73.9857, 40.7580] # Times Square
+destination = [-74.0110, 40.7060] # Wall Street
 
-print(" [x] Manhattan Simulator Started. Sending GPS updates...")
+print(f" [x] Requesting road-snapped route for {driver_id}...")
+route = get_route(current_pos, destination)
 
-while True:
-    for d_id, coords in driver_coords.items():
-        coords[0] += random.uniform(-0.0005, 0.0005)
-        coords[1] += random.uniform(-0.0005, 0.0005)
-
-        client.geoadd("taxis_manhattan", [coords[0], coords[1], d_id])
-
-    print(f" [x] Updated {len(drivers)} driver locations.")
-    time.sleep(1)
+if route:
+    print(f" [v] Route found! {len(route)} waypoints. Starting drive...")
+    for step in route:
+        client.geoadd("taxis_manhattan", [step[0], step[1], driver_id])
+        
+        time.sleep(1)
+else:
+    print(" [!] Failed to get route.")
