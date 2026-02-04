@@ -14,7 +14,25 @@ const io = new Server(httpServer, {
 const redis = new Redis({ host: process.env.REDIS_HOST || 'localhost' });
 
 io.on('connection', (socket) => {
-  console.log(" [!] New browser client connected");
+  socket.on('request_ride', async (riderPos) => {
+    const nearby = await redis.georadius(
+      'taxis_manhattan', riderPos.lng, riderPos.lat, 5, 'km', 'ASC'
+    );
+
+    if (nearby.length > 0) {
+      const closestDriverId = nearby[0];
+      
+      const job = JSON.stringify({
+        driver_id: closestDriverId,
+        target: [riderPos.lng, riderPos.lat]
+      });
+
+      await redis.lpush('dispatch_queue', job);
+      
+      console.log(`Matched Rider at ${riderPos.lat} with ${closestDriverId}`);
+      socket.emit('match_confirmed', { driver_id: closestDriverId });
+    }
+  });
 });
 
 setInterval(async () => {
