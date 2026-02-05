@@ -16,7 +16,7 @@ const redis = new Redis({ host: process.env.REDIS_HOST || 'localhost' });
 io.on('connection', (socket) => {
   socket.on('request_ride', async (riderPos) => {
     const nearby = await redis.georadius(
-      'taxis_manhattan', riderPos.lng, riderPos.lat, 5, 'km', 'ASC'
+      'taxis_manhattan', riderPos.lng, riderPos.lat, 20, 'km', 'ASC'
     );
 
     if (nearby.length > 0) {

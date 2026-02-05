@@ -9,10 +9,16 @@ function App() {
   const [drivers, setDrivers] = useState([]);
 
   useEffect(() => {
-    socket.on('driver_updates', (data) => {
-      setDrivers(data);
+    socket.on('driver_updates', (data) => setDrivers(data));
+    
+    socket.on('match_confirmed', (data) => {
+      alert(`Driver ${data.driver_id} is on the way!`);
     });
-    return () => socket.off('driver_updates');
+
+    return () => {
+      socket.off('driver_updates');
+      socket.off('match_confirmed');
+    };
   }, []);
 
   function MapClickHandler() {

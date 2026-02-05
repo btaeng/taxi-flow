@@ -12,14 +12,6 @@ services:
       - REDIS_HOST=redis-broker
       - PYTHONUNBUFFERED=1
 
-  worker:
-    build: ./worker
-    depends_on:
-      - redis-broker
-    environment:
-      - REDIS_HOST=redis-broker
-      - PYTHONUNBUFFERED=1
-
   api-hub:
     build: ./api-hub
     ports: ["3001:3001"]
