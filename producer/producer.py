@@ -13,13 +13,7 @@ MIN_LNG, MAX_LNG = -74.0100, -73.9300
 
 client.delete("taxis_manhattan")
 
-driver_states = {
-    f"taxi_{i}": {
-        "pos": [random.uniform(MIN_LNG, MAX_LNG), random.uniform(MIN_LAT, MAX_LAT)], 
-        "path": []
-    }
-    for i in range(1, 11)
-}
+driver_states = {}
 
 def get_route(start, end):
     try:
@@ -33,6 +27,25 @@ def get_route(start, end):
 print(f" [x] System Initialized with {len(driver_states)} taxis.")
 
 while True:
+    target_size_raw = client.get('target_fleet_size')
+    target_size = int(target_size_raw) if target_size_raw else 10
+
+    current_size = len(driver_states)
+    
+    if current_size < target_size:
+        for i in range(current_size + 1, target_size + 1):
+            d_id = f"taxi_{i}"
+            driver_states[d_id] = {
+                "pos": [random.uniform(MIN_LNG, MAX_LNG), random.uniform(MIN_LAT, MAX_LAT)], 
+                "path": []
+            }
+    elif current_size > target_size:
+        for i in range(target_size + 1, current_size + 1):
+            d_id = f"taxi_{i}"
+            if d_id in driver_states:
+                del driver_states[d_id]
+                client.zrem("taxis_manhattan", d_id)
+    
     job_data = client.rpop('dispatch_queue')
     if job_data:
         job = json.loads(job_data)

@@ -14,6 +14,11 @@ const io = new Server(httpServer, {
 const redis = new Redis({ host: process.env.REDIS_HOST || 'localhost' });
 
 io.on('connection', (socket) => {
+  socket.on('update_fleet_size', async (newSize) => {
+    console.log(`Setting desired fleet size to: ${newSize}`);
+    await redis.set('target_fleet_size', newSize);
+  });
+
   socket.on('request_ride', async (riderPos) => {
     const nearby = await redis.georadius(
       'taxis_manhattan', riderPos.lng, riderPos.lat, 20, 'km', 'ASC'
