@@ -4,16 +4,29 @@ import os
 import requests
 import json
 import random
+from shapely.geometry import shape, Point
 
 redis_host = os.getenv('REDIS_HOST', 'localhost')
 client = redis.Redis(host=redis_host, port=6379, decode_responses=True)
 
-MIN_LAT, MAX_LAT = 40.7000, 40.8000
-MIN_LNG, MAX_LNG = -74.0100, -73.9300
+def load_boundary(filename):
+    with open(filename) as f:
+        data = json.load(f)
+        return shape(data['features'][0]['geometry'])
 
-client.delete("taxis_manhattan")
+boundary_polygon = load_boundary('manhattan.geojson')
+min_lng, min_lat, max_lng, max_lat = boundary_polygon.bounds
+
+def get_random_point_in_city():
+    """Rejection Sampling: Pick a point in the box, check if it's in the city"""
+    while True:
+        p = Point(random.uniform(min_lng, max_lng), random.uniform(min_lat, max_lat))
+        if boundary_polygon.contains(p):
+            return [p.x, p.y]
 
 driver_states = {}
+
+client.delete("taxis_manhattan")
 
 def get_route(start, end):
     try:
@@ -29,14 +42,13 @@ print(f" [x] System Initialized with {len(driver_states)} taxis.")
 while True:
     target_size_raw = client.get('target_fleet_size')
     target_size = int(target_size_raw) if target_size_raw else 10
-
     current_size = len(driver_states)
     
     if current_size < target_size:
         for i in range(current_size + 1, target_size + 1):
             d_id = f"taxi_{i}"
             driver_states[d_id] = {
-                "pos": [random.uniform(MIN_LNG, MAX_LNG), random.uniform(MIN_LAT, MAX_LAT)], 
+                "pos": get_random_point_in_city(), 
                 "path": []
             }
     elif current_size > target_size:
