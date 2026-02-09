@@ -14,6 +14,13 @@ const io = new Server(httpServer, {
 const redis = new Redis({ host: process.env.REDIS_HOST || 'localhost' });
 
 io.on('connection', (socket) => {
+
+  socket.on('change_city', async (cityData) => {
+    console.log(`Switching environment to: ${cityData.name}`);
+    await redis.set('current_city_file', cityData.file);
+    await redis.del('taxis_manhattan');
+  });
+
   socket.on('update_fleet_size', async (newSize) => {
     console.log(`Setting desired fleet size to: ${newSize}`);
     await redis.set('target_fleet_size', newSize);

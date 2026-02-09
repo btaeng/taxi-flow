@@ -12,7 +12,17 @@ const carIcon = new L.Icon({
   iconAnchor: [15, 15],
 });
 
+const CITIES = {
+  'Manhattan': { lat: 40.7580, lng: -73.9857, file: 'manhattan.geojson' },
+  'Brooklyn': { lat: 40.6782, lng: -73.9442, file: 'brooklyn.geojson' },
+  'Queens': { lat: 40.7282, lng: -73.7949, file: 'queens.geojson' },
+  'The Bronx': { lat: 40.8448, lng: -73.8648, file: 'bronx.geojson' },
+  'Staten Island': { lat: 40.5795, lng: -74.1502, file: 'staten_island.geojson' },
+  'Los Angeles': { lat: 34.0522, lng: -118.2437, file: 'los_angeles.geojson' },
+};
+
 function App() {
+  const [currentCity, setCurrentCity] = useState('Manhattan');
   const [drivers, setDrivers] = useState([]);
   const [fleetSize, setFleetSize] = useState(10);
 
@@ -20,6 +30,12 @@ function App() {
     socket.on('driver_updates', (data) => setDrivers(data));
     return () => socket.off('driver_updates');
   }, []);
+
+  const handleCityChange = (e) => {
+    const cityName = e.target.value;
+    setCurrentCity(cityName);
+    socket.emit('change_city', { name: cityName, file: CITIES[cityName].file });
+  };
 
   const handleFleetChange = (e) => {
     const newSize = parseInt(e.target.value);
@@ -34,6 +50,12 @@ function App() {
     return null;
   }
 
+  function ChangeView({ center }) {
+    const map = useMapEvents({});
+    map.setView(center, 13);
+    return null;
+  }
+
   return (
     <div style={{ position: 'relative' }}>
       <div style={{
@@ -41,7 +63,12 @@ function App() {
         backgroundColor: 'rgba(255,255,255,0.9)', padding: '15px', borderRadius: '8px',
         boxShadow: '0 2px 10px rgba(0,0,0,0.2)', width: '200px'
       }}>
-        <h4 style={{ margin: '0 0 10px 0' }}>🚕 Taxi Control</h4>
+        <h4>Taxi Platform</h4>
+        <label>Active City:</label>
+        <select value={currentCity} onChange={handleCityChange} style={{ width: '100%', marginBottom: '10px' }}>
+          {Object.keys(CITIES).map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <h4 style={{ margin: '0 0 10px 0' }}>Taxi Control</h4>
         <label>Fleet Size: <b>{fleetSize}</b></label>
         <input 
           type="range" min="1" max="100" value={fleetSize} 
@@ -51,7 +78,8 @@ function App() {
         <p style={{ fontSize: '10px', color: '#666' }}>Click map to request ride</p>
       </div>
 
-      <MapContainer center={[40.7580, -73.9857]} zoom={13} style={{ height: "100vh" }}>
+      <MapContainer center={[CITIES[currentCity].lat, CITIES[currentCity].lng]} zoom={13} style={{ height: "100vh" }}>
+        <ChangeView center={[CITIES[currentCity].lat, CITIES[currentCity].lng]} />
         <TileLayer 
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" 
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

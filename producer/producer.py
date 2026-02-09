@@ -6,6 +6,18 @@ import json
 import random
 from shapely.geometry import shape, Point
 
+current_city_file = None
+boundary_polygon = None
+
+def update_geography(filename):
+    global boundary_polygon, min_lng, min_lat, max_lng, max_lat
+    path = f"cities/{filename}"
+    print(f" [!] Loading new city boundary: {path}")
+    with open(path) as f:
+        data = json.load(f)
+        boundary_polygon = shape(data['features'][0]['geometry'])
+        min_lng, min_lat, max_lng, max_lat = boundary_polygon.bounds
+
 redis_host = os.getenv('REDIS_HOST', 'localhost')
 client = redis.Redis(host=redis_host, port=6379, decode_responses=True)
 
@@ -13,9 +25,6 @@ def load_boundary(filename):
     with open(filename) as f:
         data = json.load(f)
         return shape(data['features'][0]['geometry'])
-
-boundary_polygon = load_boundary('manhattan.geojson')
-min_lng, min_lat, max_lng, max_lat = boundary_polygon.bounds
 
 def get_random_point_in_city():
     """Rejection Sampling: Pick a point in the box, check if it's in the city"""
@@ -40,8 +49,18 @@ def get_route(start, end):
 print(f" [x] System Initialized with {len(driver_states)} taxis.")
 
 while True:
-    target_size_raw = client.get('target_fleet_size')
-    target_size = int(target_size_raw) if target_size_raw else 10
+    client.delete("current_city_file")
+
+    new_city_file = client.get('current_city_file') or 'manhattan.geojson'
+
+    if new_city_file != current_city_file:
+        update_geography(new_city_file)
+        current_city_file = new_city_file
+        driver_states = {}
+        client.delete("taxis_manhattan")
+        client.delete("dispatch_queue")
+    
+    target_size = int(client.get('target_fleet_size') or 10)
     current_size = len(driver_states)
     
     if current_size < target_size:
