@@ -49,8 +49,6 @@ def get_route(start, end):
 print(f" [x] System Initialized with {len(driver_states)} taxis.")
 
 while True:
-    client.delete("current_city_file")
-
     new_city_file = client.get('current_city_file') or 'manhattan.geojson'
 
     if new_city_file != current_city_file:

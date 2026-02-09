@@ -52,7 +52,13 @@ function App() {
 
   function ChangeView({ center }) {
     const map = useMapEvents({});
-    map.setView(center, 13);
+    
+    useEffect(() => {
+      if (center) {
+        map.setView(center, 13, { animate: true });
+      }
+    }, [center, map]);
+
     return null;
   }
 

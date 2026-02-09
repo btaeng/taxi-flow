@@ -48,7 +48,7 @@ io.on('connection', (socket) => {
 });
 
 setInterval(async () => {
-  const drivers = await redis.georadius('taxis_manhattan', -73.9857, 40.7580, 100, 'km', 'WITHCOORD');
+  const drivers = await redis.georadius('taxis_manhattan', 0, 0, 20000, 'km', 'WITHCOORD');
   
   const formatted = drivers.map(d => ({
     id: d[0],
