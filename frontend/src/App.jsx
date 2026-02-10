@@ -21,6 +21,26 @@ const CITIES = {
   'Los Angeles': { lat: 34.0522, lng: -118.2437, file: 'los_angeles.geojson' },
 };
 
+function MapClickHandler() {
+  useMapEvents({
+    click: (e) => socket.emit('request_ride', { lat: e.latlng.lat, lng: e.latlng.lng }),
+  });
+  return null;
+}
+
+function ChangeView({ city, center }) {
+  const map = useMapEvents({});
+
+  useEffect(() => {
+    if (city && center) {
+      console.log(`Flying to ${city}...`);
+      map.setView(center, 13, { animate: true });
+    }
+  }, [city]);
+
+  return null;
+}
+
 function App() {
   const [currentCity, setCurrentCity] = useState('Manhattan');
   const [drivers, setDrivers] = useState([]);
@@ -42,25 +62,6 @@ function App() {
     setFleetSize(newSize);
     socket.emit('update_fleet_size', newSize);
   };
-
-  function MapClickHandler() {
-    useMapEvents({
-      click: (e) => socket.emit('request_ride', { lat: e.latlng.lat, lng: e.latlng.lng }),
-    });
-    return null;
-  }
-
-  function ChangeView({ center }) {
-    const map = useMapEvents({});
-    
-    useEffect(() => {
-      if (center) {
-        map.setView(center, 13, { animate: true });
-      }
-    }, [center, map]);
-
-    return null;
-  }
 
   return (
     <div style={{ position: 'relative' }}>
@@ -85,7 +86,7 @@ function App() {
       </div>
 
       <MapContainer center={[CITIES[currentCity].lat, CITIES[currentCity].lng]} zoom={13} style={{ height: "100vh" }}>
-        <ChangeView center={[CITIES[currentCity].lat, CITIES[currentCity].lng]} />
+        <ChangeView city={currentCity} center={[CITIES[currentCity].lat, CITIES[currentCity].lng]} />
         <TileLayer 
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" 
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
