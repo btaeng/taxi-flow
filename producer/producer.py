@@ -6,8 +6,8 @@ import json
 import random
 from shapely.geometry import shape, Point
 
-current_city_file = None
-boundary_polygon = None
+redis_host = os.getenv('REDIS_HOST', 'localhost')
+client = redis.Redis(host=redis_host, port=6379, decode_responses=True)
 
 def update_geography(filename):
     global boundary_polygon, min_lng, min_lat, max_lng, max_lat
@@ -17,9 +17,6 @@ def update_geography(filename):
         data = json.load(f)
         boundary_polygon = shape(data['features'][0]['geometry'])
         min_lng, min_lat, max_lng, max_lat = boundary_polygon.bounds
-
-redis_host = os.getenv('REDIS_HOST', 'localhost')
-client = redis.Redis(host=redis_host, port=6379, decode_responses=True)
 
 def load_boundary(filename):
     with open(filename) as f:
@@ -33,10 +30,6 @@ def get_random_point_in_city():
         if boundary_polygon.contains(p):
             return [p.x, p.y]
 
-driver_states = {}
-
-client.delete("taxis_manhattan")
-
 def get_route(start, end):
     try:
         url = f"http://router.project-osrm.org/route/v1/driving/{start[0]},{start[1]};{end[0]},{end[1]}?overview=full&geometries=geojson"
@@ -45,6 +38,16 @@ def get_route(start, end):
     except Exception as e:
         print(f"OSRM Error: {e}")
         return []
+    
+print(" [!] System booting. Resetting Redis state to defaults...")
+
+client.set('current_city_file', 'manhattan.geojson')
+client.set('target_fleet_size', 10)
+client.delete("taxis_manhattan")
+client.delete("dispatch_queue")
+current_city_file = None 
+boundary_polygon = None
+driver_states = {}
 
 print(f" [x] System Initialized with {len(driver_states)} taxis.")
 

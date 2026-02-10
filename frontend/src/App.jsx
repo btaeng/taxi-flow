@@ -21,13 +21,6 @@ const CITIES = {
   'Los Angeles': { lat: 34.0522, lng: -118.2437, file: 'los_angeles.geojson' },
 };
 
-function MapClickHandler() {
-  useMapEvents({
-    click: (e) => socket.emit('request_ride', { lat: e.latlng.lat, lng: e.latlng.lng }),
-  });
-  return null;
-}
-
 function ChangeView({ city, center }) {
   const map = useMapEvents({});
 
@@ -45,11 +38,27 @@ function App() {
   const [currentCity, setCurrentCity] = useState('Manhattan');
   const [drivers, setDrivers] = useState([]);
   const [fleetSize, setFleetSize] = useState(10);
+  const [riderPos, setRiderPos] = useState(null);
 
   useEffect(() => {
     socket.on('driver_updates', (data) => setDrivers(data));
-    return () => socket.off('driver_updates');
+    socket.on('match_confirmed', (data) => alert(`Matched with Driver ${data.driver_id}!`));
+    return () => {
+      socket.off('driver_updates');
+      socket.off('match_confirmed');
+    };
   }, []);
+
+  function MapClickHandler() {
+    useMapEvents({
+      click: (e) => {
+        const pos = { lat: e.latlng.lat, lng: e.latlng.lng };
+        setRiderPos(pos);
+        socket.emit('request_ride', pos);
+      },
+    });
+    return null;
+  }
 
   const handleCityChange = (e) => {
     const cityName = e.target.value;
@@ -92,6 +101,11 @@ function App() {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
         <MapClickHandler />
+        {riderPos && (
+          <Marker position={[riderPos.lat, riderPos.lng]}>
+            <Popup>Rider Pickup Point</Popup>
+          </Marker>
+        )}
         {drivers.map(d => (
           <Marker key={d.id} position={[d.lat, d.lng]} icon={carIcon}>
             <Popup>Driver: {d.id}</Popup>
