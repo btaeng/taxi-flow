@@ -41,57 +41,65 @@ def get_route(start, end):
     
 print(" [!] System booting. Resetting Redis state to defaults...")
 
-client.set('current_city_file', 'manhattan.geojson')
-client.set('target_fleet_size', 10)
-client.delete("taxis_manhattan")
-client.delete("dispatch_queue")
-current_city_file = None 
-boundary_polygon = None
-driver_states = {}
-
-print(f" [x] System Initialized with {len(driver_states)} taxis.")
-
-while True:
-    new_city_file = client.get('current_city_file') or 'manhattan.geojson'
-
-    if new_city_file != current_city_file:
-        update_geography(new_city_file)
-        current_city_file = new_city_file
-        driver_states = {}
-        client.delete("taxis_manhattan")
-        client.delete("dispatch_queue")
+def run_simulation():
+    global current_city_file, boundary_polygon, driver_states
     
-    target_size = int(client.get('target_fleet_size') or 10)
-    current_size = len(driver_states)
+    print(" [!] System booting. Resetting Redis state to defaults...")
+    client.set('current_city_file', 'manhattan.geojson')
+    client.set('target_fleet_size', 10)
+    client.delete("taxis_manhattan")
+    client.delete("dispatch_queue")
     
-    if current_size < target_size:
-        for i in range(current_size + 1, target_size + 1):
-            d_id = f"taxi_{i}"
-            driver_states[d_id] = {
-                "pos": get_random_point_in_city(), 
-                "path": []
-            }
-    elif current_size > target_size:
-        for i in range(target_size + 1, current_size + 1):
-            d_id = f"taxi_{i}"
-            if d_id in driver_states:
-                del driver_states[d_id]
-                client.zrem("taxis_manhattan", d_id)
-    
-    job_data = client.rpop('dispatch_queue')
-    if job_data:
-        job = json.loads(job_data)
-        d_id = job['driver_id']
-        if d_id in driver_states:
-            print(f" [!] Dispatching {d_id} to rider at {job['target']}")
-            new_path = get_route(driver_states[d_id]['pos'], job['target'])
-            driver_states[d_id]['path'] = new_path
+    current_city_file = None 
+    boundary_polygon = None
+    driver_states = {}
 
-    for d_id, state in driver_states.items():
-        if state['path']:
-            next_step = state['path'].pop(0)
-            state['pos'] = next_step
+    print(f" [x] System Initialized with {len(driver_states)} taxis.")
+
+    while True:
+        new_city_file = client.get('current_city_file') or 'manhattan.geojson'
+
+        if new_city_file != current_city_file:
+            update_geography(new_city_file)
+            current_city_file = new_city_file
+            driver_states = {}
+            client.delete("taxis_manhattan")
+            client.delete("dispatch_queue")
         
-        client.geoadd("taxis_manhattan", [state['pos'][0], state['pos'][1], d_id])
+        target_size = int(client.get('target_fleet_size') or 10)
+        current_size = len(driver_states)
+        
+        if current_size < target_size:
+            for i in range(current_size + 1, target_size + 1):
+                d_id = f"taxi_{i}"
+                driver_states[d_id] = {
+                    "pos": get_random_point_in_city(), 
+                    "path": []
+                }
+        elif current_size > target_size:
+            for i in range(target_size + 1, current_size + 1):
+                d_id = f"taxi_{i}"
+                if d_id in driver_states:
+                    del driver_states[d_id]
+                    client.zrem("taxis_manhattan", d_id)
+        
+        job_data = client.rpop('dispatch_queue')
+        if job_data:
+            job = json.loads(job_data)
+            d_id = job['driver_id']
+            if d_id in driver_states:
+                print(f" [!] Dispatching {d_id} to rider at {job['target']}")
+                new_path = get_route(driver_states[d_id]['pos'], job['target'])
+                driver_states[d_id]['path'] = new_path
 
-    time.sleep(0.1)
+        for d_id, state in driver_states.items():
+            if state['path']:
+                next_step = state['path'].pop(0)
+                state['pos'] = next_step
+            
+            client.geoadd("taxis_manhattan", [state['pos'][0], state['pos'][1], d_id])
+
+        time.sleep(0.1)
+
+if __name__ == "__main__":
+    run_simulation()
