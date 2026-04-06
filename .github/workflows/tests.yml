@@ -17,7 +17,7 @@ jobs:
         with:
           python-version: '3.10'
       - name: Install dependencies
-        run: pip install pytest fakeredis shapely requests
+        run: pip install pytest pytest-mock fakeredis shapely requests
       - name: Run Python Tests
         run: pytest
 
