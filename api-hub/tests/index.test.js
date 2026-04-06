@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import Redis from 'ioredis';
 
-const redis = new Redis({ host: 'localhost', port: 6380 });
+const redis = new Redis({ host: 'localhost', port: 6379 });
 
 describe('Taxi Flow: Full System Scenarios', () => {
 
