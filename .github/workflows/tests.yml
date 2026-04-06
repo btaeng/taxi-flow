@@ -23,6 +23,9 @@ jobs:
 
   test-node:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api-hub
     steps:
       - uses: actions/checkout@v4
       - name: Set up Node
