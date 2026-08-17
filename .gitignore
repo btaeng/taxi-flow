@@ -1,0 +1,19 @@
+# Node
+node_modules/
+npm-debug.log
+dist/
+.eslintcache
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.pytest_cache/
+
+# Docker/Env
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
