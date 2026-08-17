@@ -6,7 +6,10 @@ import Redis from 'ioredis';
 const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
-  cors: { origin: "*" }
+  cors: {
+    origin: ["http://localhost:5173", "https://taxi-flow-lyart.vercel.app/"],
+    methods: ["GET", "POST"]
+  }
 });
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 const redis = new Redis(redisUrl);
