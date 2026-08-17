@@ -11,7 +11,7 @@ client = redis.Redis.from_url(redis_url, decode_responses=True)
 
 def update_geography(filename):
     global boundary_polygon, min_lng, min_lat, max_lng, max_lat
-    path = f"cities/{filename}"
+    path = f"producer/cities/{filename}"
     print(f" [!] Loading new city boundary: {path}")
     with open(path) as f:
         data = json.load(f)
