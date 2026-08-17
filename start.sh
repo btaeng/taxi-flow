@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Start the Python Producer in the background
-python3 producer.py &
+python3 producer/producer.py &
 
 # Start the Node.js API Hub in the foreground
-node index.js
+node api-hub/index.js
